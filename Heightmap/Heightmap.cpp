@@ -34,6 +34,10 @@ class HeightMapApplication : public CommonApp
 	void cubeVertices(VertexColour);
 	void mapTiles(VertexColour);
 	void lookAtHMapData();
+	XMFLOAT3 calcNormalToPlane(XMFLOAT3, XMFLOAT3, XMFLOAT3);
+	void normaliseVector(XMFLOAT3&);
+	XMFLOAT3 calcXProduct(XMFLOAT3,XMFLOAT3);
+	XMFLOAT3 calcVectorA_B(XMFLOAT3, XMFLOAT3);
 };
 
 //////////////////////////////////////////////////////////////////////
@@ -283,25 +287,75 @@ void HeightMapApplication::cubeVertices(VertexColour MAP_COLOUR)
 
 void HeightMapApplication::mapTiles(VertexColour MAP_COLOUR)
 {
-	m_pMapVtxs[0] = Vertex_Pos3fColour4ubNormal3f(XMFLOAT3(0.0f, 10.0f, 0.0f), MAP_COLOUR, XMFLOAT3(0.0f, 1.0f, 0.0f));
-	m_pMapVtxs[1] = Vertex_Pos3fColour4ubNormal3f(XMFLOAT3(0.0f, 10.0f, 10.0f), MAP_COLOUR, XMFLOAT3(0.0f, 1.0f, 0.0f));
-	m_pMapVtxs[2] = Vertex_Pos3fColour4ubNormal3f(XMFLOAT3(10.0f, 10.0f, 0.0f), MAP_COLOUR, XMFLOAT3(0.0f, 1.0f, 0.0f));
-	m_pMapVtxs[3] = Vertex_Pos3fColour4ubNormal3f(XMFLOAT3(10.0f, 10.0f, 0.0f), MAP_COLOUR, XMFLOAT3(0.0f, 1.0f, 0.0f));
-	m_pMapVtxs[4] = Vertex_Pos3fColour4ubNormal3f(XMFLOAT3(0.0f, 10.0f, 10.0f), MAP_COLOUR, XMFLOAT3(0.0f, 1.0f, 0.0f));
-	m_pMapVtxs[5] = Vertex_Pos3fColour4ubNormal3f(XMFLOAT3(10.0f, 10.0f, 10.0f), MAP_COLOUR, XMFLOAT3(0.0f, 1.0f, 0.0f));
+
+	//m_pMapVtxs[0] = Vertex_Pos3fColour4ubNormal3f(XMFLOAT3(0.0f, 10.0f, 0.0f), MAP_COLOUR, XMFLOAT3(0.0f, 1.0f, 0.0f));
+	//m_pMapVtxs[1] = Vertex_Pos3fColour4ubNormal3f(XMFLOAT3(0.0f, 10.0f, 10.0f), MAP_COLOUR, XMFLOAT3(0.0f, 1.0f, 0.0f));
+	//m_pMapVtxs[2] = Vertex_Pos3fColour4ubNormal3f(XMFLOAT3(10.0f, 10.0f, 0.0f), MAP_COLOUR, XMFLOAT3(0.0f, 1.0f, 0.0f));
+	//m_pMapVtxs[3] = Vertex_Pos3fColour4ubNormal3f(XMFLOAT3(10.0f, 10.0f, 0.0f), MAP_COLOUR, XMFLOAT3(0.0f, 1.0f, 0.0f));
+	//m_pMapVtxs[4] = Vertex_Pos3fColour4ubNormal3f(XMFLOAT3(0.0f, 10.0f, 10.0f), MAP_COLOUR, XMFLOAT3(0.0f, 1.0f, 0.0f));
+	//m_pMapVtxs[5] = Vertex_Pos3fColour4ubNormal3f(XMFLOAT3(10.0f, 10.0f, 10.0f), MAP_COLOUR, XMFLOAT3(0.0f, 1.0f, 0.0f));
+
 }
 
 void HeightMapApplication::lookAtHMapData()
 {
-	XMFLOAT3 currentVertex;
-	for (size_t bitSelector = 0; bitSelector < 4096; bitSelector++)
+	XMFLOAT3 v0, v1, v2, v3, v4, v5;// = 1 quad
+	XMFLOAT3 normal = XMFLOAT3(0.0f, 1.0f, 0.0f);
+
+	for (size_t mapIndex = 0; mapIndex < m_HeightMapWidth; mapIndex++)
 	{
-		currentVertex = m_pHeightMap[bitSelector];
+		v0 = m_pHeightMap[mapIndex];
+		v1 = m_pHeightMap[mapIndex + 1];
+		v2 = m_pHeightMap[mapIndex + m_HeightMapWidth];
+		//m_pMapVtxs[mapIndex] = Vertex_Pos3fColour4ubNormal3f(v0, MAP_COLOUR, XMFLOAT3(0.0f, 1.0f, 0.0f));
+		normal = calcNormalToPlane(v0, v1, v2);
+		normaliseVector(normal);
+
+		v3 = m_pHeightMap[mapIndex + m_HeightMapWidth + 1];
+		v4 = v0;
+		v5 = v1;
+		normal = calcNormalToPlane(v3, v4, v5);
+		normaliseVector(normal);
+
 	}
+	//x is basal plattan
 	//y is height
 	//z is basal plattan
 }
 
+XMFLOAT3 HeightMapApplication::calcNormalToPlane(XMFLOAT3 vA, XMFLOAT3 vB, XMFLOAT3 vC)
+{
+	XMFLOAT3 XProd = calcXProduct(calcVectorA_B(vA,vB),calcVectorA_B(vB,vC));
+	return XProd;
+}
+
+void HeightMapApplication::normaliseVector(XMFLOAT3 &vIn)
+{
+	double length = sqrt(vIn.x*vIn.x + vIn.y*vIn.y + vIn.z*vIn.z);
+	vIn.x = vIn.x / length;
+	vIn.y = vIn.y / length;
+	vIn.z = vIn.z / length;
+}
+
+XMFLOAT3 HeightMapApplication::calcXProduct(XMFLOAT3 v1, XMFLOAT3 v2)
+{
+	float x, y, z;
+	x = (v1.y*v2.z) - (v1.z*v2.y);
+	y = (v1.z*v2.x) - (v1.x*v2.z);
+	z = (v1.x*v2.y) - (v1.y*v2.x);
+	return XMFLOAT3(x, y, z);
+}
+XMFLOAT3 HeightMapApplication::calcVectorA_B(XMFLOAT3 vA, XMFLOAT3 vB)
+{
+	float x, y, z;
+	x = vA.x - vB.x;
+	y = vA.y - vB.y;
+	z = vA.z - vB.z;
+	return XMFLOAT3(x,y,z);
+}
+//XMFLOAT3 XMFLOAT3::operator%(const XMFLOAT3 &vIn)
+//{
+//}
 //////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////
 
