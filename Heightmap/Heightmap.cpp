@@ -5,7 +5,7 @@
 #include "CommonApp.h"
 
 #include <stdio.h>
-
+#include <vector>
 #include <DirectXMath.h>
 using namespace DirectX;
 
@@ -38,6 +38,7 @@ class HeightMapApplication : public CommonApp
 	void normaliseVector(XMFLOAT3&);
 	XMFLOAT3 calcXProduct(XMFLOAT3,XMFLOAT3);
 	XMFLOAT3 calcVectorA_B(XMFLOAT3, XMFLOAT3);
+	
 };
 
 //////////////////////////////////////////////////////////////////////
