@@ -8,6 +8,7 @@
 #include <vector>
 #include <DirectXMath.h>
 using namespace DirectX;
+using namespace std;
 
 //////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////
@@ -28,12 +29,17 @@ class HeightMapApplication : public CommonApp
 	int m_HeightMapWidth;
 	int m_HeightMapLength;
 	int m_HeightMapVtxCount;
+	int m_HeightMapQuadCountWidth;
+	int m_HeightMapQuadCountLength;
 	XMFLOAT3* m_pHeightMap;
+	vector<XMFLOAT3> vertexList4Triangles;
 	Vertex_Pos3fColour4ubNormal3f* m_pMapVtxs;
 	float m_cameraZ;
 	void cubeVertices(VertexColour);
 	void mapTiles(VertexColour);
 	void lookAtHMapData();
+	void oddRow(vector<XMFLOAT3>&, int);
+	void evenRow(vector<XMFLOAT3>&, int);
 	XMFLOAT3 calcNormalToPlane(XMFLOAT3, XMFLOAT3, XMFLOAT3);
 	void normaliseVector(XMFLOAT3&);
 	XMFLOAT3 calcXProduct(XMFLOAT3,XMFLOAT3);
@@ -65,7 +71,10 @@ bool HeightMapApplication::HandleStart()
 	// Clearly this code will need changing to render the heightmap
 	/////////////////////////////////////////////////////////////////
 
-	m_HeightMapVtxCount = 6 * 6;
+	//m_HeightMapVtxCount = 6 * 6;
+	m_HeightMapVtxCount = (m_HeightMapLength - 1) * m_HeightMapWidth * 2;
+	m_HeightMapQuadCountWidth = m_HeightMapWidth - 1;
+	m_HeightMapQuadCountLength = m_HeightMapLength - 1;
 	m_pMapVtxs = new Vertex_Pos3fColour4ubNormal3f[m_HeightMapVtxCount];
 	
 	//cubeVertices(MAP_COLOUR);
@@ -290,11 +299,7 @@ void HeightMapApplication::mapTiles(VertexColour MAP_COLOUR)
 {
 
 	//m_pMapVtxs[0] = Vertex_Pos3fColour4ubNormal3f(XMFLOAT3(0.0f, 10.0f, 0.0f), MAP_COLOUR, XMFLOAT3(0.0f, 1.0f, 0.0f));
-	//m_pMapVtxs[1] = Vertex_Pos3fColour4ubNormal3f(XMFLOAT3(0.0f, 10.0f, 10.0f), MAP_COLOUR, XMFLOAT3(0.0f, 1.0f, 0.0f));
-	//m_pMapVtxs[2] = Vertex_Pos3fColour4ubNormal3f(XMFLOAT3(10.0f, 10.0f, 0.0f), MAP_COLOUR, XMFLOAT3(0.0f, 1.0f, 0.0f));
-	//m_pMapVtxs[3] = Vertex_Pos3fColour4ubNormal3f(XMFLOAT3(10.0f, 10.0f, 0.0f), MAP_COLOUR, XMFLOAT3(0.0f, 1.0f, 0.0f));
-	//m_pMapVtxs[4] = Vertex_Pos3fColour4ubNormal3f(XMFLOAT3(0.0f, 10.0f, 10.0f), MAP_COLOUR, XMFLOAT3(0.0f, 1.0f, 0.0f));
-	//m_pMapVtxs[5] = Vertex_Pos3fColour4ubNormal3f(XMFLOAT3(10.0f, 10.0f, 10.0f), MAP_COLOUR, XMFLOAT3(0.0f, 1.0f, 0.0f));
+
 
 }
 
@@ -317,14 +322,45 @@ void HeightMapApplication::lookAtHMapData()
 		v5 = v1;
 		normal = calcNormalToPlane(v3, v4, v5);
 		normaliseVector(normal);
-
+	}
+	
+	for (size_t rowNum = 1; rowNum <= m_HeightMapLength; rowNum++)
+	{
+		oddRow(vertexList4Triangles,rowNum);
+		rowNum++;
+		evenRow(vertexList4Triangles, rowNum);
 	}
 	//x is basal plattan
 	//y is height
 	//z is basal plattan
 }
 
-XMFLOAT3 HeightMapApplication::calcNormalToPlane(XMFLOAT3 vA, XMFLOAT3 vB, XMFLOAT3 vC)
+void HeightMapApplication::oddRow(vector<XMFLOAT3>& vertices, int rowNum)
+{
+	//rowNum cannot be 0.
+	vertices.push_back(m_pHeightMap[(rowNum * m_HeightMapWidth)]);//first vertex for beginning of row -> 0th
+	for (size_t vSelector = 0; vSelector < (m_HeightMapQuadCountWidth + m_HeightMapWidth) - 1; vSelector++)
+	{
+		//push top -> 1st
+		vertices.push_back(m_pHeightMap[vSelector]);
+		//push bottom -> 2nd
+		vertices.push_back(m_pHeightMap[((rowNum * m_HeightMapWidth) - 1)+(vSelector)]);
+	}
+}
+
+void HeightMapApplication::evenRow(vector<XMFLOAT3>& vertices, int rowNum)
+{
+	vertices.push_back(m_pHeightMap[(rowNum * m_HeightMapWidth) - 1]);//first vertex of beginning of row -> 512th
+	for (size_t vSelector = (m_HeightMapQuadCountWidth + m_HeightMapWidth) - 1; vSelector > 0 ; vSelector++)
+	{
+		//push bottom
+		vertices.push_back(m_pHeightMap[((rowNum * m_HeightMapWidth) - 1) + (vSelector)]);
+		//push top
+		vertices.push_back(m_pHeightMap[vSelector]);
+	}
+}
+
+XMFLOAT3 HeightMapApplication::calcNormalToPlane(XMFLOAT3 vA, XMFLOAT3 vB, XMFLOAT3 vC)// did'nt realise an equivalent was included in the framework
 {
 	XMFLOAT3 XProd = calcXProduct(calcVectorA_B(vA,vB),calcVectorA_B(vB,vC));
 	return XProd;
