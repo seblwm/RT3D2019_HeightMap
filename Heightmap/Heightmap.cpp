@@ -77,10 +77,16 @@ bool HeightMapApplication::HandleStart()
 	m_HeightMapQuadCountLength = m_HeightMapLength - 1;
 	m_pMapVtxs = new Vertex_Pos3fColour4ubNormal3f[m_HeightMapVtxCount];
 	
+	
+	
+	lookAtHMapData();
+	for (size_t vIndex = 0; vIndex < m_HeightMapVtxCount; vIndex++)
+	{
+		m_pMapVtxs[vIndex] = Vertex_Pos3fColour4ubNormal3f(vertexList4Triangles.at(vIndex), MAP_COLOUR, XMFLOAT3(0.0f, 0.0f, -1.0f));
+	}
 	//cubeVertices(MAP_COLOUR);
 
-	mapTiles(MAP_COLOUR);
-	lookAtHMapData();
+
 	/////////////////////////////////////////////////////////////////
 	// Down to here
 	/////////////////////////////////////////////////////////////////
@@ -144,7 +150,7 @@ void HeightMapApplication::HandleRender()
 
 	this->Clear(XMFLOAT4(.2f, .2f, .6f, 1.f));
 
-	this->DrawUntexturedLit(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, m_pHeightMapBuffer, NULL, m_HeightMapVtxCount);
+	this->DrawUntexturedLit(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP, m_pHeightMapBuffer, NULL, m_HeightMapVtxCount);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -299,7 +305,12 @@ void HeightMapApplication::mapTiles(VertexColour MAP_COLOUR)
 {
 
 	//m_pMapVtxs[0] = Vertex_Pos3fColour4ubNormal3f(XMFLOAT3(0.0f, 10.0f, 0.0f), MAP_COLOUR, XMFLOAT3(0.0f, 1.0f, 0.0f));
-
+	for (size_t rowNum = 1; rowNum < m_HeightMapLength - 1; rowNum++)
+	{
+		oddRow(vertexList4Triangles,rowNum);
+		rowNum++;
+		evenRow(vertexList4Triangles, rowNum);
+	}
 
 }
 
@@ -308,28 +319,23 @@ void HeightMapApplication::lookAtHMapData()
 	XMFLOAT3 v0, v1, v2, v3, v4, v5;// = 1 quad
 	XMFLOAT3 normal = XMFLOAT3(0.0f, 1.0f, 0.0f);
 
-	for (size_t mapIndex = 0; mapIndex < m_HeightMapWidth; mapIndex++)
-	{
-		v0 = m_pHeightMap[mapIndex];
-		v1 = m_pHeightMap[mapIndex + 1];
-		v2 = m_pHeightMap[mapIndex + m_HeightMapWidth];
-		//m_pMapVtxs[mapIndex] = Vertex_Pos3fColour4ubNormal3f(v0, MAP_COLOUR, XMFLOAT3(0.0f, 1.0f, 0.0f));
-		normal = calcNormalToPlane(v0, v1, v2);
-		normaliseVector(normal);
+	//for (size_t mapIndex = 0; mapIndex < m_HeightMapWidth; mapIndex++)
+	//{
+	//	v0 = m_pHeightMap[mapIndex];
+	//	v1 = m_pHeightMap[mapIndex + 1];
+	//	v2 = m_pHeightMap[mapIndex + m_HeightMapWidth];
+	//	//m_pMapVtxs[mapIndex] = Vertex_Pos3fColour4ubNormal3f(v0, MAP_COLOUR, XMFLOAT3(0.0f, 1.0f, 0.0f));
+	//	normal = calcNormalToPlane(v0, v1, v2);
+	//	normaliseVector(normal);
 
-		v3 = m_pHeightMap[mapIndex + m_HeightMapWidth + 1];
-		v4 = v0;
-		v5 = v1;
-		normal = calcNormalToPlane(v3, v4, v5);
-		normaliseVector(normal);
-	}
+	//	v3 = m_pHeightMap[mapIndex + m_HeightMapWidth + 1];
+	//	v4 = v0;
+	//	v5 = v1;
+	//	normal = calcNormalToPlane(v3, v4, v5);
+	//	normaliseVector(normal);
+	//}
 	
-	for (size_t rowNum = 1; rowNum <= m_HeightMapLength; rowNum++)
-	{
-		oddRow(vertexList4Triangles,rowNum);
-		rowNum++;
-		evenRow(vertexList4Triangles, rowNum);
-	}
+
 	//x is basal plattan
 	//y is height
 	//z is basal plattan
@@ -344,23 +350,27 @@ void HeightMapApplication::oddRow(vector<XMFLOAT3>& vertices, int rowNum)
 		//push top -> 1st
 		vertices.push_back(m_pHeightMap[vSelector]);
 		//push bottom -> 2nd
-		vertices.push_back(m_pHeightMap[((rowNum * m_HeightMapWidth) - 1)+(vSelector)]);
+		vertices.push_back(m_pHeightMap[((rowNum * m_HeightMapWidth))+(vSelector)]);
 	}
 }
 
 void HeightMapApplication::evenRow(vector<XMFLOAT3>& vertices, int rowNum)
 {
-	vertices.push_back(m_pHeightMap[(rowNum * m_HeightMapWidth) - 1]);//first vertex of beginning of row -> 512th
+	vertices.push_back(m_pHeightMap[((rowNum - 1) * m_HeightMapWidth) - 1]);//first vertex of beginning of row -> 511th (AKA first vertex at end of row because read backwards)
+	int btmVIndex = 255;
+	int topVIndex = 1;
 	for (size_t vSelector = (m_HeightMapQuadCountWidth + m_HeightMapWidth) - 1; vSelector > 0 ; vSelector++)
 	{
 		//push bottom
-		vertices.push_back(m_pHeightMap[((rowNum * m_HeightMapWidth) - 1) + (vSelector)]);
+		vertices.push_back(m_pHeightMap[((rowNum * m_HeightMapWidth) - 1) + (btmVIndex)]);
+		btmVIndex--;
 		//push top
-		vertices.push_back(m_pHeightMap[vSelector]);
+		vertices.push_back(m_pHeightMap[((rowNum * m_HeightMapWidth) - 1) - topVIndex]);
+		topVIndex++;
 	}
 }
 
-XMFLOAT3 HeightMapApplication::calcNormalToPlane(XMFLOAT3 vA, XMFLOAT3 vB, XMFLOAT3 vC)// did'nt realise an equivalent was included in the framework
+XMFLOAT3 HeightMapApplication::calcNormalToPlane(XMFLOAT3 vA, XMFLOAT3 vB, XMFLOAT3 vC)// didn't realise an equivalent was included in the framework
 {
 	XMFLOAT3 XProd = calcXProduct(calcVectorA_B(vA,vB),calcVectorA_B(vB,vC));
 	return XProd;
