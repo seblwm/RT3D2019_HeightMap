@@ -37,10 +37,10 @@ class HeightMapApplication : public CommonApp
 	float m_cameraZ;
 	void cubeVertices(VertexColour);
 	void mapTiles(VertexColour);
-	void lookAtHMapData();
 	void oddRow(vector<XMFLOAT3>&, int);
 	void evenRow(vector<XMFLOAT3>&, int);
 	void lastRow(vector<XMFLOAT3>&, int);
+	void calcFaceNormal(vector<XMFLOAT3>&, int, XMFLOAT3&, bool&);
 	XMFLOAT3 calcNormalToPlane(XMFLOAT3, XMFLOAT3, XMFLOAT3);
 	void normaliseVector(XMFLOAT3&);
 	XMFLOAT3 calcXProduct(XMFLOAT3,XMFLOAT3);
@@ -77,13 +77,16 @@ bool HeightMapApplication::HandleStart()
 	m_HeightMapQuadCountWidth = m_HeightMapWidth - 1;
 	m_HeightMapQuadCountLength = m_HeightMapLength - 1;
 	m_pMapVtxs = new Vertex_Pos3fColour4ubNormal3f[m_HeightMapVtxCount];
-	
+	XMFLOAT3 v0, v1, v2, v3, v4, v5;// = 1 quad
+	XMFLOAT3 normal = XMFLOAT3(0.0f, 1.0f, 0.0f);
+
 	mapTiles(MAP_COLOUR);//get heightmap vertices in order for trianglestrip
+	bool clckWise = true;
 	for (size_t vIndex = 0; vIndex < m_HeightMapVtxCount; vIndex++)
 	{
-		m_pMapVtxs[vIndex] = Vertex_Pos3fColour4ubNormal3f(vertexList4Triangles.at(vIndex), MAP_COLOUR, XMFLOAT3(0.0f, 1.0f, 0.0f));
+		calcFaceNormal(vertexList4Triangles, vIndex, normal, clckWise);
+		m_pMapVtxs[vIndex] = Vertex_Pos3fColour4ubNormal3f(vertexList4Triangles.at(vIndex), MAP_COLOUR, normal);
 	}
-
 
 	/////////////////////////////////////////////////////////////////
 	// Down to here
@@ -337,32 +340,7 @@ void HeightMapApplication::mapTiles(VertexColour MAP_COLOUR)
 	}
 }
 
-void HeightMapApplication::lookAtHMapData()
-{
-	XMFLOAT3 v0, v1, v2, v3, v4, v5;// = 1 quad
-	XMFLOAT3 normal = XMFLOAT3(0.0f, 1.0f, 0.0f);
 
-	//for (size_t mapIndex = 0; mapIndex < m_HeightMapWidth; mapIndex++)
-	//{
-	//	v0 = m_pHeightMap[mapIndex];
-	//	v1 = m_pHeightMap[mapIndex + 1];
-	//	v2 = m_pHeightMap[mapIndex + m_HeightMapWidth];
-	//	//m_pMapVtxs[mapIndex] = Vertex_Pos3fColour4ubNormal3f(v0, MAP_COLOUR, XMFLOAT3(0.0f, 1.0f, 0.0f));
-	//	normal = calcNormalToPlane(v0, v1, v2);
-	//	normaliseVector(normal);
-
-	//	v3 = m_pHeightMap[mapIndex + m_HeightMapWidth + 1];
-	//	v4 = v0;
-	//	v5 = v1;
-	//	normal = calcNormalToPlane(v3, v4, v5);
-	//	normaliseVector(normal);
-	//}
-	
-
-	//x is basal plattan
-	//y is height
-	//z is basal plattan
-}
 
 void HeightMapApplication::oddRow(vector<XMFLOAT3>& vertices, int rowNum)
 {
@@ -391,6 +369,7 @@ void HeightMapApplication::evenRow(vector<XMFLOAT3>& vertices, int rowNum)
 
 void HeightMapApplication::lastRow(vector<XMFLOAT3>& vertices, int rowNum)
 {
+
 	if (rowNum % 2 == 0)//if even go left to right
 	{
 		// if vSelector = heightmapwidth - 1
@@ -431,6 +410,28 @@ void HeightMapApplication::lastRow(vector<XMFLOAT3>& vertices, int rowNum)
 				vertices.push_back(m_pHeightMap[((rowNum * m_HeightMapWidth)) + (vSelector)]);
 			}
 		}
+	}
+}
+
+void HeightMapApplication::calcFaceNormal(vector<XMFLOAT3>& verticesInFace, int vIndex, XMFLOAT3& normal, bool& clckWise)
+{
+	if ((vIndex % 3 == 0) && (vIndex < m_HeightMapVtxCount - 3))
+	{
+		//calc face normal
+		//vertexList4Triangles.at(vIndex) = 1st vertex in triangle
+		//vertexList4Triangles.at(vIndex + 1) = 2nd vertex in triangle
+		//vertexList4Triangles.at(vIndex + 2) = 3rd vertex in triangle
+		if (clckWise)
+		{
+			normal = calcNormalToPlane(vertexList4Triangles.at(vIndex), vertexList4Triangles.at(vIndex + 1), vertexList4Triangles.at(vIndex + 2));
+			clckWise = false;
+		}
+		else
+		{	//to adjust for the winding order
+			normal = calcNormalToPlane(vertexList4Triangles.at(vIndex + 2), vertexList4Triangles.at(vIndex + 1), vertexList4Triangles.at(vIndex));
+			clckWise = true;
+		}
+		normaliseVector(normal);
 	}
 }
 
