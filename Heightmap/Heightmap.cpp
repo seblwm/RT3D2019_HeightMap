@@ -40,6 +40,7 @@ class HeightMapApplication : public CommonApp
 	void lookAtHMapData();
 	void oddRow(vector<XMFLOAT3>&, int);
 	void evenRow(vector<XMFLOAT3>&, int);
+	void lastRow(vector<XMFLOAT3>&, int);
 	XMFLOAT3 calcNormalToPlane(XMFLOAT3, XMFLOAT3, XMFLOAT3);
 	void normaliseVector(XMFLOAT3&);
 	XMFLOAT3 calcXProduct(XMFLOAT3,XMFLOAT3);
@@ -54,7 +55,7 @@ bool HeightMapApplication::HandleStart()
 {
 	this->SetWindowTitle("HeightMap");
 
-	LoadHeightMap("hMapTiny.bmp", 1.0f);
+	LoadHeightMap("Heightmap.bmp", 1.0f);
 
 	m_cameraZ = 50.0f;
 
@@ -228,21 +229,34 @@ bool HeightMapApplication::LoadHeightMap(char* filename, float gridSize)
 	k = 0;
 
 	// Read the image data into the height map.
-	for(j = 0; j < m_HeightMapLength; j++)
-	{
-		for(i = 0; i < m_HeightMapWidth; i++)
-		{
+	//for(j = 0; j < m_HeightMapLength; j++)
+	//{
+	//	for(i = 0; i < m_HeightMapWidth; i++)
+	//	{
+	//		height = bitmapImage[k];
+
+	//		index = (m_HeightMapLength * j) + i;
+
+	//		m_pHeightMap[index].x = (float)(i - (m_HeightMapWidth / 2)) * gridSize;
+	//		m_pHeightMap[index].y = (float)height / 16 * gridSize;
+	//		m_pHeightMap[index].z = (float)(j - (m_HeightMapLength / 2)) * gridSize;
+
+	//		k += 3;
+	//	}
+	//}
+	
+	for (j = m_HeightMapLength - 1; j >= 0; j--)
+		for (i = 0; i < m_HeightMapWidth; i++) {
 			height = bitmapImage[k];
-
 			index = (m_HeightMapLength * j) + i;
-
 			m_pHeightMap[index].x = (float)(i - (m_HeightMapWidth / 2)) * gridSize;
 			m_pHeightMap[index].y = (float)height / 16 * gridSize;
-			m_pHeightMap[index].z = (float)(j - (m_HeightMapLength / 2)) * gridSize;
-
+			m_pHeightMap[index].z = (float)((m_HeightMapLength / 2) - j) * gridSize;
 			k += 3;
 		}
-	}
+	
+
+	
 
 	// Release the bitmap image data.
 	delete[] bitmapImage;
@@ -302,11 +316,24 @@ void HeightMapApplication::mapTiles(VertexColour MAP_COLOUR)
 {
 	XMFLOAT3 normal = XMFLOAT3(0.0f, 1.0f, 0.0f);
 	//m_pMapVtxs[0] = Vertex_Pos3fColour4ubNormal3f(XMFLOAT3(0.0f, 10.0f, 0.0f), MAP_COLOUR, XMFLOAT3(0.0f, 1.0f, 0.0f));
-	for (size_t rowNum = 1; rowNum < m_HeightMapLength - 1; rowNum++)
+	for (size_t rowNum = 1; rowNum < m_HeightMapLength; rowNum++)
 	{
-		oddRow(vertexList4Triangles,rowNum);
-		rowNum++;
-		evenRow(vertexList4Triangles, rowNum);
+		//if (rowNum == m_HeightMapLength - 1)//last row
+		//{
+		//	lastRow(vertexList4Triangles, rowNum);
+		//}
+		//else
+		//{
+			if (rowNum % 2 != 0)
+			{
+				oddRow(vertexList4Triangles, rowNum);
+			}
+			else
+			{
+				evenRow(vertexList4Triangles, rowNum);
+			}
+			
+		//}
 	}
 }
 
@@ -346,27 +373,63 @@ void HeightMapApplication::oddRow(vector<XMFLOAT3>& vertices, int rowNum)
 		//push bottom -> 1st
 		vertices.push_back(m_pHeightMap[((rowNum * m_HeightMapWidth))+(vSelector)]);
 		//push top -> 2nd
-		vertices.push_back(m_pHeightMap[vSelector]);
+		vertices.push_back(m_pHeightMap[((rowNum - 1) * m_HeightMapWidth) + (vSelector)]);
 	}
 }
 
 void HeightMapApplication::evenRow(vector<XMFLOAT3>& vertices, int rowNum)
 {
-	int btmVIndex = 0;
-	int topVIndex = 0;
-	for (size_t vSelector = m_HeightMapWidth - 1; vSelector > 0; vSelector--)
+	for (size_t vSelector = 0; vSelector < m_HeightMapWidth; vSelector++)
 	{
-		if (topVIndex < m_HeightMapWidth - 1)
-		{
 			//push top
-			vertices.push_back(m_pHeightMap[(((rowNum - 1) * m_HeightMapWidth) + (m_HeightMapWidth - 1)) - topVIndex]);//vertex at end of row to start
-			topVIndex++;
-		}
-		if (btmVIndex < m_HeightMapWidth - 1)
-		{
+			vertices.push_back(m_pHeightMap[(((rowNum - 1) * m_HeightMapWidth) + (m_HeightMapWidth - 1)) - vSelector]);//vertex at end of row to start
+
 			//push bottom
-			vertices.push_back(m_pHeightMap[(((rowNum) * m_HeightMapWidth) + (m_HeightMapWidth - 1)) - btmVIndex]);
-			btmVIndex++;
+			vertices.push_back(m_pHeightMap[(((rowNum)* m_HeightMapWidth) + (m_HeightMapWidth - 1)) - vSelector]);
+	}
+}
+
+void HeightMapApplication::lastRow(vector<XMFLOAT3>& vertices, int rowNum)
+{
+	if (rowNum % 2 == 0)//if even go left to right
+	{
+		// if vSelector = heightmapwidth - 1
+		for (size_t vSelector = 0; vSelector < m_HeightMapWidth; vSelector++)
+		{
+			if (vSelector < m_HeightMapWidth - 1)
+			{
+				//push top
+				vertices.push_back(m_pHeightMap[(((rowNum - 1) * m_HeightMapWidth) + (m_HeightMapWidth - 1)) - vSelector]);//vertex at end of row to start
+
+				//push bottom
+				vertices.push_back(m_pHeightMap[(((rowNum)* m_HeightMapWidth) + (m_HeightMapWidth - 1)) - vSelector]);
+			}
+			else
+			{
+				//push bottom
+				vertices.push_back(m_pHeightMap[(((rowNum)* m_HeightMapWidth) + (m_HeightMapWidth - 1)) - vSelector]);
+				//push top
+				vertices.push_back(m_pHeightMap[(((rowNum - 1) * m_HeightMapWidth) + (m_HeightMapWidth - 1)) - vSelector]);//vertex at end of row to start
+			}
+		}
+	}
+	else
+	{
+		for (size_t vSelector = 0; vSelector < m_HeightMapWidth; vSelector++)
+		{
+			if (vSelector < m_HeightMapWidth - 1) {
+				//push bottom -> 1st
+				vertices.push_back(m_pHeightMap[((rowNum * m_HeightMapWidth)) + (vSelector)]);
+				//push top -> 2nd
+				vertices.push_back(m_pHeightMap[vSelector]);
+			}
+			else
+			{
+				//push top
+				vertices.push_back(m_pHeightMap[vSelector]);
+				//push bottom
+				vertices.push_back(m_pHeightMap[((rowNum * m_HeightMapWidth)) + (vSelector)]);
+			}
 		}
 	}
 }
