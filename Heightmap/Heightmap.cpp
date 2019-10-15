@@ -341,7 +341,7 @@ void HeightMapApplication::oddRow(vector<XMFLOAT3>& vertices, int rowNum)
 {
 	//rowNum cannot be 0.
 	//vertices.push_back(m_pHeightMap[(rowNum * m_HeightMapWidth)]);//first vertex for beginning of row -> 0th
-	for (size_t vSelector = 0; vSelector < m_HeightMapWidth - 1; vSelector++)
+	for (size_t vSelector = 0; vSelector < m_HeightMapWidth; vSelector++)
 	{
 		//push bottom -> 1st
 		vertices.push_back(m_pHeightMap[((rowNum * m_HeightMapWidth))+(vSelector)]);
