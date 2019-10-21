@@ -36,7 +36,6 @@ class HeightMapApplication : public CommonApp
 	void mapTiles(VertexColour);
 	void oddRow(vector<XMFLOAT3>&, int);
 	void evenRow(vector<XMFLOAT3>&, int);
-	void lastRow(vector<XMFLOAT3>&, int);
 	void calcFaceNormal(vector<XMFLOAT3>&, int, XMFLOAT3&, bool&);
 	XMFLOAT3 calcNormalToPlane(XMFLOAT3, XMFLOAT3, XMFLOAT3);
 	void normaliseVector(XMFLOAT3&);
@@ -50,7 +49,7 @@ class HeightMapApplication : public CommonApp
 bool HeightMapApplication::HandleStart()
 {
 	this->SetWindowTitle("HeightMap");
-	LoadHeightMap("Heightmap2.bmp", 1.0f);
+	LoadHeightMap("Heightmap.bmp", 1.0f);
 	m_cameraZ = 50.0f;
 	m_pHeightMapBuffer = NULL;
 	m_rotationAngle = 0.f;
@@ -75,10 +74,19 @@ bool HeightMapApplication::HandleStart()
 
 	for (size_t vIndex = 0; vIndex < m_HeightMapVtxCount; vIndex++)
 	{
-		if ((vIndex % 3 == 0) && (vIndex < m_HeightMapVtxCount - 3))
+		if ((vIndex % 3 == 0) && (vIndex < m_HeightMapVtxCount - 3)) {
 			calcFaceNormal(verticesInWindingOrder, vIndex, normal, clckWise);
+		}
 
 		m_pMapVtxs[vIndex] = Vertex_Pos3fColour4ubNormal3f(verticesInWindingOrder.at(vIndex), MAP_COLOUR, normal);
+	}
+	for (size_t vtxIndex = 0; vtxIndex < m_HeightMapVtxCount; vtxIndex++)
+	{
+		if (vtxIndex % 2 == 0)
+		{
+			calcAvgOf2Normals(m_pMapVtxs[vtxIndex].normal, m_pMapVtxs[vtxIndex].normal);
+			// getting there. need to calc normals of bottom of one row with next.
+		}
 	}
 	/////////////////////////////////////////////////////////////////
 	// Down to here
