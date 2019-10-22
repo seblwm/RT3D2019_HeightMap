@@ -71,22 +71,46 @@ bool HeightMapApplication::HandleStart()
 	mapTiles(MAP_COLOUR);//get heightmap vertices in order for trianglestrip
 	bool clckWise = true;
 	int numTrianglesPerRow = (m_HeightMapWidth - 1) * 2;//don't forget degenerate triangle at end of each row!!
-
+	int triangle(0);
+	vector<XMFLOAT3> faceNormals;
 	for (size_t vIndex = 0; vIndex < m_HeightMapVtxCount; vIndex++)
 	{
 		if ((vIndex % 3 == 0) && (vIndex < m_HeightMapVtxCount - 3)) {
 			calcFaceNormal(verticesInWindingOrder, vIndex, normal, clckWise);
+			triangle++;
+			faceNormals.push_back(normal);
 		}
-
-		m_pMapVtxs[vIndex] = Vertex_Pos3fColour4ubNormal3f(verticesInWindingOrder.at(vIndex), MAP_COLOUR, normal);
+		
+		//m_pMapVtxs[vIndex] = Vertex_Pos3fColour4ubNormal3f(verticesInWindingOrder.at(vIndex), MAP_COLOUR, normal);
+	}
+	for (size_t normSelector = 0; normSelector < (((m_HeightMapWidth - 1) * 2) + 1)^2; normSelector++)
+	{
+		if (faceNormals.at(normSelector).x == 0)
+		{
+			if (faceNormals.at(normSelector).y == 0)
+			{
+				if (faceNormals.at(normSelector).z == 0)
+				{
+					//degenerate triangle
+					(faceNormals[normSelector]);
+				}
+			}
+		}
 	}
 	for (size_t vtxIndex = 0; vtxIndex < m_HeightMapVtxCount; vtxIndex++)
 	{
 		if (vtxIndex % 2 == 0)
 		{
-			calcAvgOf2Normals(m_pMapVtxs[vtxIndex].normal, m_pMapVtxs[vtxIndex].normal);
-			// getting there. need to calc normals of bottom of one row with next.
+
 		}
+		m_pMapVtxs[vtxIndex] = Vertex_Pos3fColour4ubNormal3f(verticesInWindingOrder.at(vtxIndex), MAP_COLOUR, faceNormals.at(vtxIndex));
+		//if (/*(vtxIndex % 2 == 0)&&*/(vtxIndex < m_HeightMapVtxCount - (m_HeightMapWidth * 2 + 1)))
+		//{
+		//	XMFLOAT3 tempnorm;
+		//	tempnorm = calcAvgOf2Normals(m_pMapVtxs[vtxIndex].normal, m_pMapVtxs[vtxIndex + (m_HeightMapWidth * 2) + 1].normal);
+		//	// getting there. need to calc normals of bottom of one row with next.
+		//	m_pMapVtxs[vtxIndex].normal = tempnorm;
+		//}
 	}
 	/////////////////////////////////////////////////////////////////
 	// Down to here
@@ -271,26 +295,16 @@ void HeightMapApplication::mapTiles(VertexColour MAP_COLOUR)
 	XMFLOAT3 normal = XMFLOAT3(0.0f, 1.0f, 0.0f);
 	for (size_t rowNum = 1; rowNum < m_HeightMapLength; rowNum++)
 	{
-		//if (rowNum == m_HeightMapLength - 1)//last row
-		//{
-		//	lastRow(vertexList4Triangles, rowNum);
-		//}
-		//else
-		//{
-			if (rowNum % 2 != 0)
-			{
-				oddRow(verticesInWindingOrder, rowNum);
-			}
-			else
-			{
-				evenRow(verticesInWindingOrder, rowNum);
-			}
-			
-		//}
+		if (rowNum % 2 != 0)
+		{
+			oddRow(verticesInWindingOrder, rowNum);
+		}
+		else
+		{
+			evenRow(verticesInWindingOrder, rowNum);
+		}
 	}
 }
-
-
 
 void HeightMapApplication::oddRow(vector<XMFLOAT3>& vertices, int rowNum)
 {
@@ -345,7 +359,7 @@ XMFLOAT3 HeightMapApplication::calcNormalToPlane(XMFLOAT3 vA, XMFLOAT3 vB, XMFLO
 
 void HeightMapApplication::normaliseVector(XMFLOAT3 &vIn)//suppose this is kind of proof I know the maths
 {
-	double length = sqrt(vIn.x*vIn.x + vIn.y*vIn.y + vIn.z*vIn.z);
+	float length = sqrt(vIn.x*vIn.x + vIn.y*vIn.y + vIn.z*vIn.z);
 	vIn.x = vIn.x / length;
 	vIn.y = vIn.y / length;
 	vIn.z = vIn.z / length;
